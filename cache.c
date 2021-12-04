@@ -2,12 +2,10 @@
  *  cache total size is 32 bytes
  * */
 
-
 #include<stdio.h>
 #include<math.h>
 #include<assert.h>
 #include<stdlib.h>
-
 
 #include "cache.h"
 #include "memory.h"
@@ -21,9 +19,9 @@
 #define B 8
 #define E 1
 
-
 /* define the struct of the cache 
  * the Line struct below is given as the building brick
+ *
  * */
 
 struct Line {
@@ -31,7 +29,6 @@ struct Line {
     unsigned short tag;
     unsigned char block[B];
 };
-
 
 struct Set {
     struct Line *lines;
@@ -41,13 +38,12 @@ struct cache {
     struct Set *sets;
 };
 
-
 /* global variable C to denote the cache */
 static int is_init = 0;
 static struct cache C;
 
-
 void init_cache() {
+    /* to initialize the cache */
     assert(B * E * S == 32);
     struct Set tempSet;
     struct Line tempLine;
@@ -66,10 +62,7 @@ void init_cache() {
             tempSet.lines[i] = tempLine;
         }
     }
-
-    /* to initialize the cache */
-
-}
+} // init_cache
 
 
 void print_line(struct Line l) {
@@ -81,31 +74,34 @@ void print_line(struct Line l) {
         printf("%02x", l.block[j]);
     }
     printf("\n");
-}
+} // print_line
 
 
 int search_cache(unsigned short addr, unsigned char *ptr) {
     /* search the cache to find a cache hit or end up with miss */
 
     int result = 0;
-    int index_width = log2(S);
-    int block_offset = log2(B);
-    int addr_width = 1;
-    int temp_addr = addr;
+    int indexWidth = log2(S);
+    int blockOffset = log2(B);
+    int addrWidth = 1;
+    int tempAddr = addr;
 
-    while (temp_addr > 9) {
-        addr_width++;
-        temp_addr /= 10;
+    while (tempAddr > 9) {
+        addrWidth++;
+        tempAddr /= 10;
     }
 
-    int set_index = (addr >> block_offset) & (S - 1);
-    int tag = addr >> (index_width + block_offset);
-    int block_bit = ((1 << block_offset) - 1) & (addr >> 1);
+    // Get tge set index and tag.
+    int setIndex = (addr >> blockOffset) & (S - 1);
+    int tag = addr >> (indexWidth + blockOffset);
+    int block_bit = ((1 << blockOffset) - 1) & (addr >> 1);
 
+    // Go to the set index and tag
     struct Set temp;
-    temp = C.sets[set_index];
+    temp = C.sets[setIndex];
 
-    for (int i = 0; i < E; i++) {
+    // Iterate over the tags in a set to look for a match
+    for (int i = 0; i < E; i++){
         if ((temp.lines[i].tag == tag) && (temp.lines[i].valid)) {
             result = 1;
             *ptr = temp.lines[i].block[block_bit];
@@ -114,46 +110,48 @@ int search_cache(unsigned short addr, unsigned char *ptr) {
     return result;
 } // search_cache
 
-
 void fill_cache(unsigned short addr) {
     /* read a block from memory and store it in the cache */
 
-    int index_width = log2(S);
-    int block_offset = log2(B);
-    int addr_width = 1;
-    int temp_addr = addr;
+    int indexWidth = log2(S);
+    int blockOffset = log2(B);
+    int addrWidth = 1;
+    int tempAddr = addr;
 
-    while (temp_addr > 9) {
-        addr_width++;
-        temp_addr /= 10;
+    while (tempAddr > 9) {
+        addrWidth++;
+        tempAddr /= 10;
     }
 
-    long casted_addr = addr;
-    long *ptr = (long *) casted_addr;
+    long castedAddress = addr;
+    long *ptr = (long *) castedAddress;
 
-    unsigned char block_temp[B];
+    unsigned char blockTemp[B];
     int to_evict = rand() % E;
 
     assert(to_evict < E);
 
-    // Get the memory block at address
+    // Get the memory block an address.
     for (int i = 0; i < B; i++) {
-        block_temp[i] = ptr;
+        blockTemp[i] = ptr;
         ptr++;
     }
 
-    int set_index = (addr >> block_offset) & (S - 1);
-    int tag = addr >> (index_width + block_offset);
+    int setIndex = (addr >> blockOffset) & (S - 1);
+    int tag = addr >> (indexWidth + blockOffset);
 
-
+    /*
+     * Go set and line using the value from to_evict and fill in a new memory block
+     * struct Set temp;
+     * temp = C.sets[set_index]
+     */
     for (int i = 0; i < B; i++) {
-        C.sets[set_index].lines[to_evict].block[i] = block_temp[i];
+        C.sets[setIndex].lines[to_evict].block[i] = blockTemp[i];
     }
 
-    C.sets[set_index].lines[to_evict].valid = 1;
-    C.sets[set_index].lines[to_evict].tag = tag;
-}
-
+    C.sets[setIndex].lines[to_evict].valid = 1;
+    C.sets[setIndex].lines[to_evict].tag = tag;
+} // fill_cache
 
 unsigned char read_cache(unsigned short addr) {
     int is_hit;
@@ -169,8 +167,7 @@ unsigned char read_cache(unsigned short addr) {
         fill_cache(addr);
         search_cache(addr, &a);
     }
-
     return a;
-}
+} // read_cache
 
 
